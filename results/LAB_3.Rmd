@@ -1,0 +1,100 @@
+---
+title: "LAB_3"
+author: "Daniil Polishchuk"
+date: "2024-04-30"
+output:
+  html_document: default
+---
+
+```{r getting data, echo=F, include=FALSE, comment=""}
+data = read.csv("D://Econometrics/data.csv")
+data
+nrow(data)
+
+Y_3 <- data$Y3
+X_2 <- data$X2
+X_3 <- data$X3
+X_7 <- data$X7
+X_12 <- data$X12
+X_13 <- data$X13
+x <- data[c("X2", "X3", "X7", "X12", "X13")]
+```
+# Task 1
+СТандартизовані кофіцієнти кореляції.
+Це пов’язано з тим, що регресори мають різні виміри, тому ми не можемо визначити найвпливовіший.
+```{r beta_standardized, comment="", echo = F}
+model_A <- lm(Y_3 ~ X_2 + X_3 + X_7 + X_12 + X_13, data = data )
+# beta_hat = solve(t(X) %*% X) %*% t(X) %*% Y
+
+beta_hat = as.matrix(model_A$coefficients)
+
+X_list  <- cbind(matrix( rep(1, nrow(x))),x)
+sd_x <- sapply(X_list, sd)
+sd_y <- sd(Y_3)
+
+beta_hat_standardized <- beta_hat * sd_x/sd_y
+cbind.data.frame("beta_hat"  = beta_hat)
+cbind.data.frame("standardized beta hat" = beta_hat_standardized)
+```
+Ранжування зпівпало з частковим коефіцієнтом кориляції
+
+```{r corr, echo=F, comment=""}
+correlation = read.csv("D:\\Econometrics/correlation.csv")
+correlation
+```
+
+
+# Task 2
+Find epsilon 
+
+Коефіцієнт еластичності показує, на скільки відсотків зміниться регресанд,
+якщо при інших рівних умовах один з регресорів збільшити на один відсоток.
+```{r epsilon, comment="", echo = FALSE}
+xbar <- sapply(x, mean)
+ybar <- mean(Y_3)
+
+epsilon_hat <- beta_hat[2:length(beta_hat)] * xbar/ybar
+epsilon_hat
+```
+```{r task, comment=""}
+#Task 1 
+
+# За початковими даними розрахувати парнi коефiцiєнти кореляцiї 
+# мiж залежною (результативною) ознакою Y 
+# i незалежними (факторними) ознаками X1–X5. 
+# Перевiрити значущiсть отриманих коефiцiєнтiв. 
+# Надати економiчного тлумачення результатам.
+
+# y_3 
+# x_2 x_3 x_7 x_12 x_14
+
+#y - Рентабельнiсть (dependent)
+#x_2 - Питома вага робiтникiв у складi промислово-виробничого персоналу
+#X_3 - Питома вага покупних виробiв
+#x_7 - Фондовiддача
+#x_12 - Оборотнiсть нормованих оборотних коштiв
+#x_13 - Невиробничi витрати
+#X- independent 
+```
+
+# Task 3
+Find covariance - correlation matrix 
+
+Але коваріація має недолік, а саме – вона необмежена зверху і знизу
+```{r cov-corr matrix, echo=FALSE, comment=""}
+results <- read.csv("D:\\Econometrics/models_characteristics.csv")
+sigma <- results$sigma.2[1]
+
+X  <- as.matrix(cbind(matrix( rep(1, nrow(x))),x))
+
+Sigma_hat <- sigma * solve(t(X) %*% X)
+cbind.data.frame("sigma" = Sigma_hat)
+R <- matrix(rep(0, ncol(Sigma_hat) * nrow(Sigma_hat)), ncol = ncol(Sigma_hat))
+for( i in 1:ncol(Sigma_hat)){
+  for( k in 1:ncol(Sigma_hat)){
+    R[i,k] <- Sigma_hat[i,k] / sqrt(Sigma_hat[i,i] * Sigma_hat[k,k])
+  }
+}
+cbind.data.frame("R" = R)
+
+```

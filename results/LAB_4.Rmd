@@ -1,0 +1,131 @@
+---
+title: "LAB_4"
+author: "Daniil Polishchuk"
+date: "2024-05-06"
+output: html_document
+---
+
+![](images/Screenshot 2024-04-26 152639-01.png)
+
+```{r getting data, echo=F, include=FALSE, comment=""}
+data = read.csv("D://Econometrics/data.csv")
+data
+nrow(data)
+
+Y_3 <- data$Y3
+X_2 <- data$X2
+X_3 <- data$X3
+X_7 <- data$X7
+X_12 <- data$X12
+X_13 <- data$X13
+x <- data[c("X2", "X3", "X7", "X12", "X13")]
+X  <- as.matrix(cbind(matrix( rep(1, nrow(x))),x))
+```
+
+# Task 1 
+
+Інтервал довіри (інтервальна оцінка)  є інтервалом з випадковими межами і включає істинне значення k -го регресійного коефіцієнта з ймовірністю (1−α)100%.
+
+```{r task1, echo=F, comment=""}
+model<- lm(Y_3 ~ data$X2+ 
+               data$X3+ 
+               data$X7+
+               data$X12+ 
+               data$X13, data = data)
+model
+summary_model <- summary(model)
+
+sigma <- read.csv("models_characteristics.csv")[1,2]
+Sigma_hat <- sigma * solve(t(X) %*% X)
+
+# Upper and lower limits 
+LL <- model$coefficients - qt(1 - 0.1/2, df = 53 - 5 ) * sqrt(diag(Sigma_hat))
+UL <- model$coefficients + qt(1 - 0.1/2, df = 53 - 5 ) * sqrt(diag(Sigma_hat))
+
+alpha = 0.2
+#result matrix 
+result <- matrix(rep(0, 6 * 6), ncol = 6 )
+result[,1] <- summary_model$coefficients[,3]
+result[,2] <- qt(1 - alpha/4, nrow(x) - ncol(x)-1)
+result[,3] <- round(summary_model$coefficients[,4],4)
+result[,4] <- abs(summary_model$coefficients[,3]) > qt(1 - alpha/4, nrow(x) - ncol(x)-1)
+result[,5] <- LL
+result[,6] <- UL
+
+#making final data frame 
+
+df3 <- data.frame(result)
+colnames(df3) <- c("t.test","t.stat", "p.value","T/F", "LL", "UL")
+rownames(df3) <- c("X0  -- β1",
+                   "X2  -- β2", 
+                   "X3  -- β3", 
+                   "X7  -- β4", 
+                   "X12 -- β5", 
+                   "X13 -- β6")
+df3
+
+correlation <- read.csv("correlation.csv")
+correlation
+```
+Ранжування зпівпало з частковим коєфіцієнтом кореляції.
+
+відрізняються від нуля з ймовірністю 80 %.
+
+# Task 2 
+Оцінимо інтервал довіри для математичного очікування.
+```{r task2, echo =FALSE, comment=""}
+xbar <- sapply(x, mean)
+xbar <- c(1,xbar)
+xbar
+y_predicted <- sum(model$coefficients * xbar)
+
+sigma_e <- sqrt(t(xbar) %*% Sigma_hat %*% xbar ) 
+
+LL_sigma_e <- y_predicted - qt(1 - 0.1/2, 53 - 5) * sigma_e
+UL_sigma_e <- y_predicted + qt(1 - 0.1/2, 53 - 5) * sigma_e
+
+temp <- cbind(y_predicted,LL_sigma_e,UL_sigma_e)
+colnames(temp) <- c("y_pred","LL","UL")
+temp
+
+
+```
+Отже середня рентабільність(Y_3) при значеня x_bar   буде коливатися з ймовірністю 80 % у межах від LL до UL(межа).
+
+середня рентабільність Y_3 на придприємствах з такими параметрами (при значеня x_bar) буде дорівнювати y_pred
+```{r variables, comment=""}
+#Task 1 
+
+# За початковими даними розрахувати парнi коефiцiєнти кореляцiї 
+# мiж залежною (результативною) ознакою Y 
+# i незалежними (факторними) ознаками X1–X5. 
+# Перевiрити значущiсть отриманих коефiцiєнтiв. 
+# Надати економiчного тлумачення результатам.
+
+# y_3 
+# x_2 x_3 x_7 x_12 x_14
+
+#y - Рентабельнiсть (dependent)
+#x_2 - Питома вага робiтникiв у складi промислово-виробничого персоналу
+#X_3 - Питома вага покупних виробiв
+#x_7 - Фондовiддача
+#x_12 - Оборотнiсть нормованих оборотних коштiв
+#x_13 - Невиробничi витрати
+#X- independent 
+```
+Тепер оцінимо прогнозний інтервал для індивідуального значення регресанда. 
+
+
+```{r task2_2, echo =FALSE, comment=""}
+sigma_e_i <- sqrt(sigma + sigma_e^2)
+
+LL_sigma_e_i <- y_predicted - qt(1 - 0.1/2, 53 - 5) * sigma_e_i
+UL_sigma_e_i <- y_predicted + qt(1 - 0.1/2, 53 - 5) * sigma_e_i
+
+temp2 <- cbind(sigma_e_i, LL_sigma_e_i,UL_sigma_e_i)
+colnames(temp2) <- c("individual.val","LL","UL")
+temp2
+```
+Рентабильність на (одному) підприємстві при таких значеннях буде дорівнювати 
+
+Отримали що рентабильність на підприємстві з такими параметрами  (у якого значення X (дорівнює x_bar) з ймовірністю 80 % буде коливатися від від LL до UL(межа)

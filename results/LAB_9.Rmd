@@ -1,0 +1,127 @@
+---
+title: "LAB_9"
+author: "Daniil Polishchuk"
+date: "2024-05-22"
+output: html_document
+---
+
+```{r getting data, echo=F, include=FALSE, comment=""}
+
+data = read.csv("D://Econometrics/data.csv")
+
+
+Y_3 <- data$Y3
+X_2 <- data$X2
+X_3 <- data$X3
+X_7 <- data$X7
+X_12 <- data$X12
+X_14 <- data$X14
+x <- data[c("X2", "X3", "X7", "X12", "X14")]
+X <- as.matrix(cbind(matrix( rep(1, nrow(x))),x))
+Y <- y <- data$Y3
+
+
+#correlation <- read.csv("correlation.csv")
+
+#import library to use the test function (durbinWatsonTest)
+#library(car)
+```
+
+![](images/Screenshot 2024-05-16 165228.png)
+
+# TASK 1
+
+![](images/Screenshot 2024-05-29 081218.png)
+
+![](images/Screenshot 2024-05-29 081234.png)
+
+![](images/Screenshot 2024-05-29 081329.png)
+
+```{r, echo=F, comment=""}
+r <- cor(x)
+cbind("r" = r)
+
+Z <- solve(r)
+cbind("Z" = Z)
+
+chisq.st <- -(53 - 1 - 1/6 * (2 * 53 + 6)) * log(det(r))
+chisq.kr <- qchisq(1 - 0.05, 7)
+
+cbind(chisq.st, chisq.kr, "T/F" = chisq.st < chisq.kr)
+```
+
+з ймовiрнiстю 95% у масивi змiнних мультиколiнеарнiсть існує.
+
+```{r task 1_1, echo = F, comment = ""}
+
+F.st <- (diag(Z) - 1) * (53 - 6)/( 6-1)
+
+
+F.kr <- qf(1 - 0.05, 6 - 1, 53 - 6)
+cbind(F.kr,F.st, "T/F" = F.st < F.kr)
+```
+5-та незалежна змiнна мультиколiнеарна з масивом iнших змiнних
+```{r, echo = F, comment = ""}
+r_ki <- rep(0, 6)
+name <- c('2', '3', '7', '12', '14')
+names <- rep(0,10)
+pos <- 1
+for (i in 1:ncol(Z)){
+  for (j in i+1: ncol(Z)){
+    if (j > ncol(Z)) { break}
+    r_ki[pos] <- -Z[i,j] / sqrt(Z[i,i] * Z[j,j])
+    names[pos] <-  paste(name[i], name[j])
+    pos <- pos + 1 
+    
+    #print(c(i,j, pos, -Z[i,j] / sqrt(Z[i,i] * Z[j,j])))
+  }
+}
+#r_ki
+
+# names
+
+t.st <- abs(r_ki) * sqrt((53 - 6)/(1 - r_ki^2)) 
+
+
+t.kr <- qt(1 - 0.05, 53 - 2)
+cbind(names, t.st, t.kr, 'T/F' = t.st > t.kr)
+
+# length(names)
+# length(t.st)
+# length(t.kr)
+
+```
+
+# TAsk 2
+
+```{r, echo = F, comment=""}
+eigen_vector <- eigen(Z)$vectors
+eigen_values <- eigen(Z)$values
+eigen_vector
+eigen_values
+# sum(diag(Z))
+# sum(eigen_values)
+
+I1 <- sum(eigen_values[1] + eigen_values[2])/sum(eigen_values)
+I2 <- sum(eigen_values[1] + eigen_values[2] + eigen_values[3])/sum(eigen_values)
+
+cbind(I1, I2)
+
+L <- matrix(rep(0, 5 * 5), ncol = 5)
+diag(L) <- eigen_values
+
+as.matrix(eigen_vector) %*% L^(1/2)
+```
+
+
+```{r, comment=""}
+# y_3 
+# x_2 x_3 x_7 x_12 x_14
+
+#y - Рентабельнiсть (dependent)
+#x_2 - Питома вага робiтникiв у складi промислово-виробничого персоналу
+#X_3 - Питома вага покупних виробiв
+#x_7 - Фондовiддача
+#x_12 - Оборотнiсть нормованих оборотних коштiв
+#x_14 - Невиробничi витрати
+```

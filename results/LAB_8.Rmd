@@ -1,0 +1,176 @@
+---
+title: "LAB_8"
+author: "Daniil Polishchuk"
+date: "2024-05-18"
+output: html_document
+---
+
+![](images/Screenshot%202024-05-16%20165222.png)
+
+![](images/Screenshot%202024-05-18%20182101.png)
+
+![](images/Screenshot%202024-05-18%20182020.png)
+
+![](images/Screenshot%202024-05-18%20182141.png)
+
+![](images/Screenshot%202024-05-18%20182223.png)
+
+![](images/Screenshot%202024-05-18%20182248.png)
+
+....
+
+```{r, comment=""}
+# F.st   F.test T/F
+# [1,] 3.101211 2.050259   1
+#           F.st   F.test T/F
+# [1,] 0.3475826 2.050259   0
+#          F.st   F.test T/F
+# [1,] 1.161523 2.050259   0
+#          F.st   F.test T/F
+# [1,] 1.250724 2.050259   0
+#           F.st   F.test T/F
+# [1,] 0.4733992 2.050259   0
+```
+
+```{r data, echo=F, include = F}
+data_wacor = read.csv("data_without_autocor_1")
+
+x<- as.matrix(data_wacor[,2:7])
+Y <- as.matrix(data_wacor[,1])
+X <- as.matrix(data_wacor[,3:7])
+```
+
+# Task 1
+
+```{r GK_test, include=F}
+GK_test <- function(data_new){
+  T = nrow(data_new)
+  N = ncol(data_new) - 1
+  m = round(4/15 * T, 0)
+  ndraw <- (T - m)/2
+  ndraw2 <- T - ndraw + 1
+  
+  # find u_1 
+  
+  X_1<- as.matrix(data_new[1:ndraw,2:ncol(data_new)])
+  Y_1 <- as.matrix(data_new[1:ndraw,1])
+  
+  beta_hat_1 = solve(t(X_1) %*% X_1) %*% t(X_1) %*% Y_1
+  beta_hat_1
+  
+  Yhat_1 = X_1 %*% beta_hat_1
+  u_1 <- Y_1 - Yhat_1
+  
+  # find  u_2 
+  
+  X_2<- as.matrix(data_new[ndraw2:T, 2:ncol(data_new)])
+  Y_2 <- as.matrix(data_new[ndraw2:T, 1])
+  
+  beta_hat_2 = solve(t(X_2) %*% X_2) %*% t(X_2) %*% Y_2
+  beta_hat_2
+  
+  Yhat_2 = X_2 %*% beta_hat_2
+  u_2 <- Y_2 - Yhat_2
+  
+  # result 
+  
+  F.st <- (sum(u_2^2)/(ndraw - N))/(sum(u_1^2)/(ndraw - N))
+  F.test <- qf(1- 0.1, ndraw - N, ndraw - N)
+  
+  return(cbind(F.st, F.test, "T/F" = F.st > F.test))
+}
+
+manual_model <- function(Y,X){
+  #additional_args <- list(...)
+  #t <- additional_args['T']
+
+  #T = nrow(X)
+  N = ncol(X)
+
+  X <- as.matrix(cbind(matrix( rep(1, nrow(X))),X))
+
+  beta_hat = solve(t(X) %*% X) %*% t(X) %*% Y
+  beta_hat
+
+  #return(beta_hat)
+  return(beta_hat)
+}
+```
+
+```{r task1, echo = F, comment=""}
+names = c("x2", 'x3', "x4", 'x7', 'x14')
+names
+for (i in 1:(ncol(data_wacor) - 2)){
+  data_sort <- data_wacor[order(data_wacor[,i+2], decreasing = F), ]
+  print(GK_test(data_sort))
+}
+```
+
+X2 exist heteroscatisity
+
+# Task 2
+
+```{r task 2, echo = F, comment=""}
+beta_hat = solve(t(x) %*% x) %*% t(x) %*% Y
+Yhat = x %*% beta_hat
+U <- Y - Yhat
+
+beta_hat_u = solve(t(x) %*% x) %*% t(x) %*% U^2
+beta_hat_u
+
+Uhat = x %*% beta_hat_u
+epsilon <- U^2 - Uhat
+
+
+F.st <- (t(Uhat) %*% Uhat * (53 - 6))/ ( t(epsilon) %*% epsilon * (6 -1))
+
+cbind( "F.test" = qf(1 - 0.05, 6 - 1, 53 - 6), "F.st" = F.st)
+
+
+T_H <- matrix(rep(0, 53 * 53), ncol = 53)
+diag(T_H) <- 1/sqrt(abs(Uhat))
+
+Y_new <- T_H %*% Y
+X_new <- T_H %*% x
+
+beta_hat_y = solve(t(X_new) %*% X_new) %*% t(X_new) %*% Y_new
+beta_hat_y
+
+for(i in 2:6){
+  data <- cbind(Y_new, X_new)
+  data_sort <- data[order(data[,i+1], decreasing = F), ]
+  print(GK_test(data_sort))
+}
+```
+
+# Yarovoj method
+
+```{r yaroboy method, comment="", echo = F}
+#step 1 
+T = nrow(x)
+beta_hat = manual_model(Y, X)
+#step 2 
+
+Yhat = x %*% beta_hat
+u <- Y - Yhat
+
+sigma <- sum(u^2)/(T- 5)
+
+# step 3
+
+N = x %*% solve(t(x) %*% x) %*% t(x)
+
+T_H = matrix(rep(0, T * T), ncol = T)
+
+diag(T_H) = 1/ sqrt(u^2 * (1 - diag(N)))
+
+X_1 = T_H %*% X
+Y_1 = T_H %*% Y
+
+for(i in 1:5){
+  data <- cbind(Y_1,X_1)
+  data_sort <- data[order(data[,i+1], decreasing = F), ]
+  print(GK_test(data_sort))
+}
+  
+```

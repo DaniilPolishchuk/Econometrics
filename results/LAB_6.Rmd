@@ -1,0 +1,258 @@
+---
+title: "LAB 6"
+author: "Daniil Polishchuk"
+date: "2024-05-07"
+output: html_document
+---
+
+```{r getting data, echo=F, include=FALSE, comment=""}
+library(olsrr)
+data = read.csv("D://Econometrics/data.csv")
+data
+nrow(data)
+
+Y_3 <- data$Y3
+X_2 <- data$X2
+X_3 <- data$X3
+X_7 <- data$X7
+X_12 <- data$X12
+X_13 <- data$X13
+x <- data[c("X2", "X3", "X7", "X12", "X13")]
+X <- as.matrix(cbind(matrix( rep(1, nrow(x))),x))
+Y <- y <- data$Y3
+
+
+correlation <- read.csv("correlation.csv")
+```
+
+![](images/Screenshot%202024-05-01%20121114.png)
+
+# TASK 1
+ \(R_T^2\) - Скоригований коефiцiєнт детермiнацiї за Тейлом
+ 
+$\sigma^2$ - дисперсія залишків 
+
+$C_p$ -статистики Маллоуза.
+
+```{r model, echo = F, comment = ""}
+model_A <- lm(y ~ x[,1] + x[,2] + x[,3] + x[,4] + x[,5])
+model_A
+```
+
+```{r task 1, echo=F, comment=""}
+names <- c("2","3","7","12","13")
+rowname <- c()
+
+n_models = 5
+N = 2
+T = nrow(x)
+# Group A -- working 
+group_A <- matrix(rep(N,n_models* 4), ncol = 4)
+for (i in 1:n_models){
+  model_temp <- (lm(y ~ x[,i]))
+  group_A[i,2] <- 1 - (1 - summary(model_temp)$r.squared) * (T-1)/(T-N)
+  group_A[i,3] <- sum(summary(model_temp)$residuals^2)/(T - N) 
+  group_A[i,4] <- ols_mallows_cp(lm(y ~ x[,i]), model_A)
+  #y_hat_temp   <- cbind(matrix( rep(1, nrow(x))),x[,i]) %*% as.matrix(model_temp$coefficients)
+  #group_A[i,5] <- sum((y - y_hat_temp)^2) * (T + N)/(T-N)
+  rowname <- c(rowname, paste(1,names[i]))
+}
+#group_A
+
+n_models = 10
+N = 3
+group_B <- matrix(rep(N,n_models * 4), ncol = 4)
+pos <- 1
+for (i in 1:ncol(x)){
+  for (j in (i+1):ncol(x)){
+    if(j == ncol(x) + 1){break}
+    model_temp <- lm(y ~ x[,i] + x[,j], data = data)
+    group_B[pos,2] <- 1 - (1 - summary(model_temp )$r.squared) * (T-1)/(T-N)
+    group_B[pos,3] <- sum(summary(model_temp)$residuals^2)/(T - N) 
+    group_B[pos,4] <- ols_mallows_cp(model_temp, model_A)
+    y_hat_temp   <- as.matrix(cbind(matrix( rep(1, nrow(x))),x[,c(i,j)]) ) %*% as.matrix(model_temp$coefficients)
+    #group_A[pos,5] <- sum((y - y_hat_temp)^2) * (T + N)/(T-N)
+    
+    pos <- pos + 1
+    
+    rowname <- c(rowname, paste(1,names[i], names[j]))
+  }
+}
+#group_B
+
+n_models = 10
+N = 4
+group_C <- matrix(rep(N,n_models * 4), ncol = 4)
+pos <- 1
+for (i in 1:ncol(x)){
+  for (j in (i+1):ncol(x)){
+    if(j == ncol(x) + 1){break}
+    for (q in (j+1):ncol(x)){
+      if( q == ncol(x)+1){break}
+      model_temp <- lm(y ~ x[,i] + x[,j] + x[,q], data = data)
+      group_C[pos,2] <- 1 - (1 - summary(model_temp)$r.squared) * (T-1)/(T-N)
+      group_C[pos,3] <- sum(summary(model_temp)$residuals^2)/(T - N) 
+      group_C[pos,4] <- ols_mallows_cp(model_temp, model_A)
+      pos <- pos + 1
+      rowname <- c(rowname, paste(1,names[i],names[j], names[q]))
+    }
+  }
+}
+#group_C
+
+n_models = 5
+N = 5
+group_D <- matrix(rep(N,n_models*4), ncol = 4)
+pos <- 1
+for (i in 1:ncol(x)){
+  for (j in (i+1):ncol(x)){
+    if(j == ncol(x) + 1){break}
+    for (q in (j+1):ncol(x)){
+      if( q == ncol(x)+1){break}
+      for (w in (q+1):ncol(x)){
+        if( w == ncol(x)+1){break}
+        model_temp <- lm(y ~ x[,i] + x[,j] + x[,q] + x[,w], data = data)
+       group_D[pos,2] <- 1 - (1 - summary(model_temp)$r.squared) * (T-1)/(T-N)
+       group_D[pos,3] <- sum(summary(model_temp)$residuals^2)/(T - N)
+       group_D[pos,4] <- ols_mallows_cp(model_temp, model_A)
+        pos <- pos + 1
+        
+        rowname <- c(rowname, paste(1,names[i], names[j], names[q], names[w]))
+      }
+
+    }
+  }
+}
+#group_D
+
+n_models = 1
+N = 6
+group_E <- matrix(rep(N,n_models*4), ncol = 4)
+pos <- 1
+for (i in 1:ncol(x)){
+  for (j in (i+1):ncol(x)){
+    if(j == ncol(x) + 1){break}
+    for (q in (j+1):ncol(x)){
+      if( q == ncol(x)+1){break}
+      for (w in (q+1):ncol(x)){
+        if( w == ncol(x)+1){break}
+        for (r in (w+1):ncol(x)){
+          if(r == ncol(x)+1){break}
+          rowname <- c(rowname, paste(1,names[i], names[j], names[q], names[w], names[r]))
+        model_temp <- lm(y ~ x[,i] + x[,j] + x[,q] + x[,w] + x[,r], data = data)
+        group_E[pos,2] <- 1 - (1 - summary(model_temp)$r.squared) * (T-1)/(T-N)
+        group_E[pos,3] <- sum(summary(model_temp)$residuals^2)/(T - N) 
+        group_E[pos,4] <- ols_mallows_cp(model_temp, model_A)
+        pos <- pos + 1
+        }
+      }
+    }
+  }
+}
+#group_E
+
+df5 <- data.frame(rbind(group_A,group_B,group_C,group_D, group_E))
+row.names(df5) <- rowname
+colnames(df5) <- c("p", "R^2_t","sigma^2", "C_p")
+df5
+
+```
+
+```{r plot.result, echo=F, comment="", out.width="50%"}
+plot(x=df5$p,
+     y = df5$C_p,
+     ylim = c(0,22),
+     xlim = c(0,10),
+     col = df5$p,
+     type = "p",
+     pch = 19)
+lines(x = c(0,5,10), y = c(0,5,10), col= "red")
+text(x = df5$p,
+     y = df5$C_p,
+     labels = rownames(df5),
+     pos = 3,
+     cex = 0.6)
+grid(nx = 10 , ny = 10)
+
+```
+
+```{r, echo = F, comment=""}
+correlation
+```
+
+# TASK 2
+
+```{r task 3, echo = F, comment=""}
+y_hat_temp_2   <- cbind(matrix( rep(1, nrow(x))),X_7) %*% 
+  as.matrix(lm(y ~ X_7)$coefficients)
+res_model_2 <- sum((y - y_hat_temp_2)^2) * (T + N)/(T-N)
+
+y_hat_temp_3   <- as.matrix(cbind(matrix( rep(1, nrow(x))),x[,c(2,3)])) %*% 
+  as.matrix(lm(y ~ X_3 + X_7 )$coefficients)
+res_model_3 <- sum((y - y_hat_temp_3)^2) * (T + N)/(T-N)
+
+y_hat_temp_4   <- as.matrix(cbind(matrix( rep(1, nrow(x))),x[,c(2,3,5)])) %*% 
+  as.matrix(lm(y ~ X_3 + X_7 + X_13 )$coefficients)
+res_model_4 <- sum((y - y_hat_temp_4)^2) * (T + N)/(T-N)
+
+y_hat_temp_5_2   <- as.matrix(cbind(matrix( rep(1, nrow(x))),x[,c(1,2,3,5)])) %*% 
+  as.matrix(lm(y ~ X_2 + X_3 + X_7 + X_13 )$coefficients)
+res_model_5_2 <- sum((y - y_hat_temp_5_2)^2) * (T + N)/(T-N)
+
+y_hat_temp_5_12   <- as.matrix(cbind(matrix( rep(1, nrow(x))),x[,c(2,3,4,5)])) %*% 
+  as.matrix(lm(y ~X_3 + X_7 + X_12 + X_13 )$coefficients)
+res_model_5_12 <- sum((y - y_hat_temp_5_12)^2) * (T + N)/(T-N)
+
+y_hat_temp_6   <- as.matrix(cbind(matrix( rep(1, nrow(x))),x[,c(1, 2,3,4,5)])) %*% 
+  as.matrix(lm(y ~ X_2 + X_3 + X_7 + X_12 + X_13 )$coefficients)
+res_model_6 <- sum((y - y_hat_temp_6)^2) * (T + N)/(T-N)
+
+rbind("Model: X1 X7                -- AF =" = res_model_2,
+      "Model: X1 X3 X7             -- AF =" = res_model_3,
+      "Model: X1 X3 X7 x13         -- AF =" = res_model_4,
+      "Model: X1 X2 X3 X7  x13     -- AF =" = res_model_5_2,
+      "Model: X1 X3 X7 X12 x13     -- AF =" = res_model_5_12,
+      "Model: X1 X2 X3 X7  X12 x13 -- AF =" = res_model_6)
+
+```
+
+# TASK 3
+
+скористаємося критерієм Рамсея.
+
+Критерій Рамсея. Алгоритм його такий:
+
+![](images/Screenshot 2024-05-08 095028.png)
+
+```{r task2, echo = F, comment=""}
+coef <- as.matrix(model_A$coefficients)
+coef
+X <- as.matrix(cbind(matrix( rep(1, nrow(x))),x))
+y_hat  <- X %*% coef
+y_hat_2 <- y_hat ^ 2 
+y_hat_3 <- y_hat ^ 3
+y_hat_4 <- y_hat ^ 4
+
+RSS_X <- sum((y - y_hat)^2)
+rbind(RSS_X)
+
+x_1 <- as.matrix(cbind(x, y_hat_2, y_hat_3, y_hat_4))
+
+coef_1 <- lm(y ~ x_1,na.action = na.omit)$coefficients
+coef_1 
+#p <- na.exclude(coef_1)
+
+X_1 <- as.matrix(cbind(matrix( rep(1, nrow(x_1))),x_1))
+y_hat_1 <- X_1 %*% coef_1
+RSS_X1 <- sum((y - y_hat_1)^2)
+rbind(RSS_X1)
+
+#summary(lm(y ~ x_2,na.action = na.omit))
+
+f.stat = (RSS_X -RSS_X1)*(T-3)/(3 * RSS_X1)
+f.test <- qf(1- 0.05,3,T - 3)
+cbind(f.stat, f.test)
+ifelse(f.stat < f.test, "Good", "Bad")
+```
+
+Модель добре спеціфікована 

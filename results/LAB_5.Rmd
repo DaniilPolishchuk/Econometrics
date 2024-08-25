@@ -1,0 +1,165 @@
+---
+title: "LAB_5"
+author: "Daniil Polishchuk"
+date: "2024-05-06"
+output: html_document
+---
+
+![](images/Screenshot 2024-04-26 152655.png)
+
+```{r getting data, echo=F, include=FALSE, comment=""}
+data = read.csv("D://Econometrics/data.csv")
+data
+nrow(data)
+
+Y_3 <- data$Y3
+X_2 <- data$X2
+X_3 <- data$X3
+X_7 <- data$X7
+X_12 <- data$X12
+X_13 <- data$X13
+x <- data[c("X2", "X3", "X7", "X12", "X13")]
+X <- as.matrix(cbind(matrix( rep(1, nrow(x))),x))
+Y <- data$Y3
+
+
+correlation <- read.csv("correlation.csv")
+```
+
+
+### Task 1
+Для оцінки коефіцієнтів регресії використовується сума квадратів залишків.
+Її ми використовували для порівняння декількох моделей. Однак її не можна
+використовувати як показник адекватності однієї моделі, так як вона необмежена
+зверху. 
+Відсутність верхньої межі у сумі квадратів залишків, як недолік,
+усувається за допомогою коефіцієнта детермінації.
+
+
+Звичайний коефіцієнт детермінації \(R^2\) як критерій вибору функції регресії
+має недолік, який може призвести до того, що буде віддаватися перевага варіанту
+рівняння з великою кількістю регресорів.
+
+
+Цей недолік полягає в тому, що при
+включенні додаткового регресора до рівняння \(R^2\) може тільки збільшитись.
+
+На відміну від простого коефіцієнта детермінації \(R^2\) , скоригований за
+Тейлом коефіцієнт детермінації коригується з урахуванням ступенів вільностей
+суми квадратів залишків та загальної суми квадратів.
+
+Скоригований коефіцієнт детермінації
+R^A відображає втрату ступеня
+свободи при включенні додаткового регресора більш чітко, ніж
+R^T
+
+```{r task 1, echo = F , comment=""}
+names <- c("X2", "X3", "X7", "X12", "X13")
+alpha <- 0.05
+result <- matrix(rep(0, 6*6), ncol = 6)
+
+for(i in 0:length(names)){
+  if (i == 0){
+    x <- data[names]
+    X <- as.matrix(x)
+    model = lm(Y ~ X)
+    summary_model <- summary(model)
+    T = nrow(X)
+    N = ncol(X) + 1 
+    
+    #R^2
+    R <- summary_model$r.squared
+    result[i+1,1] =  R
+    #R_T
+    R_t <- 1 - (1 - R) * (T - 1)/(T - N)
+    result[i+1,2] = R_t
+    
+    #R_A^2
+    R_A <- 1 - (1 - R)*(T + N)/(T - N)
+    result[i+1,3] = R_A
+    
+    #F_st
+    F_stat <- (R *(T - N))/((1 - R) * (N-1))
+    result[i+1,4] = F_stat
+    
+    #F_kr 
+    F_cr <- qf(alpha, N-1, T-N, lower.tail = F)
+    result[i+1,5] = F_cr
+    
+    #T/F
+    result[i+1,6] = F_stat > F_cr
+  }
+  else{
+    x <- data[names[i]]
+    X <- as.matrix(x)
+    model = lm(Y ~ X)
+    summary_model <- summary(model)
+    T = nrow(X)
+    N = ncol(X) + 1
+
+    #R^2
+    R <- summary_model$r.squared 
+    result[i+1,1] =  R
+
+    #R_T
+    R_t <- 1 - (1 - R) * (T - 1)/(T - N)
+    result[i+1,2] = R_t
+
+    #R_A^2
+    R_A <- 1 - (1 - R)*(T + N)/(T - N)
+    result[i+1,3] = R_A
+
+    #F_st
+    F_stat <- (R *(T - N))/((1 - R) * (N-1))
+    result[i+1,4] = F_stat
+
+    #F_kr
+    F_cr <- qf(alpha, N-1, T-N, lower.tail = F)
+    result[i+1,5] = F_cr
+
+    #T/F
+    result[i+1,6] = F_stat > F_cr
+
+
+  }
+  
+}
+df4 <- data.frame(result)
+rownames(df4) <- c("A", "B - X2", "c - X3", "D - X7", "E - X12", "F - X13")
+colnames(df4) <- c("R^2", "R^2_T", "R^2_A", "f.stat", "f.test", "T/F")
+df4
+correlation
+
+```
+Винсновок: 
+Ранжування та значущість \(R^2, R^2_T \)зпівпало з парним коєф. кореляції
+\(R^2_A\) зпівпала з частковим коєфіцієнтом кореляції
+
+# Task 2 
+Інтерпретація 
+\(ΔR_k^2\) : він показує, на яку величину зменшиться коефіцієнт детермінації, якщо k -й регресор виключити з моделі.
+Враховуючи суть коефіцієнта детермінації, можна зробити такий висновок:
+чим більший \(ΔR_k^2\) , тим більш впливовим є у моделі k -й регресор.
+
+```{r task2, echo = F, comment=""}
+sigma = read.csv("models_characteristics.csv")[1,2]
+x <- data[c("X2", "X3", "X7", "X12", "X13")]
+X <- as.matrix(cbind(matrix( rep(1, nrow(x))),x))
+Sigma_hat <- sigma * solve(t(X) %*% X)
+T = nrow(X)
+N = ncol(X)
+#partion dertemination coeficient 
+model<- lm(Y_3 ~ data$X2+ 
+               data$X3+ 
+               data$X7+
+               data$X12+ 
+               data$X13, data = data)
+
+R = df4$`R^2`[1]
+R_pair <- (1 - R)/(T - N) *(model$coefficients/sqrt(diag(Sigma_hat)))^2
+
+
+cbind(round(R_pair,5)[2:6] )
+```
+
+Висновок: Ранжування зпівпало з частковим коєфікієнтом кореляції

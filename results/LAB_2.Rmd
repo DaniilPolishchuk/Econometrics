@@ -1,0 +1,103 @@
+---
+title: "LAB_2"
+author: "Daniil Polishchuk"
+date: "2024-04-29"
+output: html_document
+---
+
+
+# The models
+```{r getting data, echo=F, include=FALSE, comment=""}
+data = read.csv("D://Econometrics/data.csv")
+data
+nrow(data)
+
+Y_3 <- data$Y3
+X_2 <- data$X2
+X_3 <- data$X3
+X_7 <- data$X7
+X_12 <- data$X12
+X_13 <- data$X13
+```
+
+```{r models, echo = F, comment="" }
+model_A <- lm(Y_3 ~ X_2 + X_3 + X_7 + X_12 + X_13, data = data )
+model_B <- lm(Y_3 ~ X_2, data = data )
+model_C <- lm(Y_3 ~ X_3, data = data )
+model_D <- lm(Y_3 ~ X_7, data = data )
+model_E <- lm(Y_3 ~ X_12, data = data )
+model_F <- lm(Y_3 ~ X_13, data = data )
+model_A
+model_B
+model_C
+model_D
+model_E
+model_F
+```
+
+```{r task, comment=""}
+#Task 1 
+
+# За початковими даними розрахувати парнi коефiцiєнти кореляцiї 
+# мiж залежною (результативною) ознакою Y 
+# i незалежними (факторними) ознаками X1–X5. 
+# Перевiрити значущiсть отриманих коефiцiєнтiв. 
+# Надати економiчного тлумачення результатам.
+
+# y_3 
+# x_2 x_3 x_7 x_12 x_14
+
+#y - Рентабельнiсть (dependent)
+#x_2 - Питома вага робiтникiв у складi промислово-виробничого персоналу
+#X_3 - Питома вага покупних виробiв
+#x_7 - Фондовiддача
+#x_12 - Оборотнiсть нормованих оборотних коштiв
+#x_13 - Невиробничi витрати
+#X- independent 
+```
+
+```{r results, echo=FALSE, comment=""}
+names <- c(1,2,3,7,12,13)
+string_coef <- function(model, names = c(1,2,3,7,12,13), coef_cord = 2){
+  coef <- round(model$coefficients,5)
+  t <- ""
+  if (length(coef) > 3){
+    for (i in 1:length(coef)){
+      q <- paste(coef[i],"x",names[i]," ", sep = "")
+      t <- paste(t,q)
+    }
+  }
+  else{
+    temp_names <- c(1,names[coef_cord])
+    for(i in 1:length(coef)){
+      q <- paste(coef[i],"x",temp_names[i]," ", sep="")
+      t <- paste(t,q)
+    }
+  }
+  return(t)
+}
+
+models <- c(string_coef(model_A), 
+            string_coef(model_B, coef_cord = 2),
+            string_coef(model_C, coef_cord = 3),
+            string_coef(model_D,coef_cord = 4),
+            string_coef(model_E, coef_cord = 5),
+            string_coef(model_F, coef_cord = 6))
+
+results <- read.csv("D:\\Econometrics/models_characteristics.csv")
+#results 
+models 
+results
+
+```
+
+```{r corr, echo=F, comment=""}
+correlation = read.csv("D:\\Econometrics/correlation.csv")
+correlation
+```
+
+-- Дисперсія залишків співпадає з парним коєфіцієнтом кореляції 
+
+-- Теж саме з MSE 
+
+-- По MAPE задовільна точність 

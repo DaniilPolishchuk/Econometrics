@@ -1,0 +1,126 @@
+---
+title: "LAB_7"
+author: "Daniil Polishchuk"
+date: "2024-05-14"
+output: html_document
+---
+
+```{r getting data, echo=F, include=FALSE, comment=""}
+library(olsrr)
+data = read.csv("D://Econometrics/data.csv")
+data
+nrow(data)
+
+Y_3 <- data$Y3
+X_2 <- data$X2
+X_3 <- data$X3
+X_7 <- data$X7
+X_12 <- data$X12
+X_13 <- data$X13
+x <- data[c("X2", "X3", "X7", "X12", "X13")]
+X <- as.matrix(cbind(matrix( rep(1, nrow(x))),x))
+Y <- y <- data$Y3
+
+
+correlation <- read.csv("correlation.csv")
+
+#import library to use the test function (durbinWatsonTest)
+library(car)
+```
+
+Autocorrelation --  залишки не є незалежними один вiд одного
+
+![](images/Screenshot%202024-05-15%20085855.png)
+
+
+![](images/Screenshot%202024-05-15%20090138.png)
+
+
+![](images/Screenshot 2024-05-15 090928.png)
+
+iнерцiйнiсть (наявнiсть лагу) -- Число періодів, за якими розраховується коефіцієнт автокореляції
+
+### Task 1 -- Durbin Watson Test
+
+d-тест Дарбiна---Уотсона виявляє лише автокореляцiю залишкiв першого по-рядку. Для iнших порядкiв використовуються iншi тести;
+
+```{r model, echo=F, comment=""}
+model <- lm(y ~ x[,1] + x[,2] + x[,3] + x[,4] + x[,5])
+model
+```
+
+H0 : rho = 0 - відсутня автокореляція залишків.
+
+H1 : rho != 0 - присутня автокореляція залишків,
+
+```{r task1, echo=F,comment=""}
+#alpha = 0.1
+
+u <- summary(model)$residuals
+
+temp_sum <- 0
+for( i in 2:length(u)){
+  temp_sum <- temp_sum + (u[i] - u[i-1])^2
+}
+d.st <- temp_sum/sum(u^2)
+
+d_0 = (1.34+1.37)/2
+d_u = 1.77
+
+cbind(d_0,d.st,d_u)
+
+
+durbinWatsonTest(model)
+
+
+```
+
+Summary : Ми бачимо, що $d_0 < d_{st} < d_u$ , тобто, cm d попадає в область невизначеності. Це означає, що нічого не можна сказати про наявність або відсутність автокореляції залишків першого порядку. Тому вважаємо, що автокореляція залишків першого порядку присутня з ймовірністю 90 %. Усунемо автокореляцію залишків методом Кохрейна -- Оркатта.
+
+### TAsk
+
+метод Кохрейна---Оркатта усунення автокореляцiї)
+
+Метод Дарбiна
+
+```{r task2, echo=F, comment=""}
+
+temp_sum1 <- 0
+for (i in 2:length(u)){
+  temp_sum1 <- temp_sum1 + (u[i-1] * u[i])
+}
+rho_hat <- temp_sum1/sum(u^2)
+rbind(rho_hat)
+
+#T= 25
+T = 53
+T_A <- matrix(rep(0,T * T), ncol = T)
+
+
+diag(T_A) <- 1
+T_A[1,1] <- sqrt(1 - rho_hat^2)
+T_A[2,1] <- (-rho_hat)
+T_A[T,T] <- 1
+T_A[T,T-1] <- - rho_hat
+for (i in 1:T){
+  for (j in 1:T){
+    if (j == i - 1){
+      T_A[i,j] = - rho_hat
+    }
+  }
+}
+
+Y_fix <- T_A %*% Y
+#X_fix <- T_A %*% as.matrix(x)
+
+X_fix <- T_A %*% X
+
+beta_hat = solve(t(X_fix) %*% X_fix) %*% t(X_fix) %*% Y_fix
+beta_hat
+
+dw <- durbinWatsonTest(lm(Y_fix ~ X_fix[,2] + X_fix[,3] + X_fix[,4] + X_fix[,5] + X_fix[,6]))$dw
+cbind(d_0,d_u,dw, "4 - d_u" = 4 - d_u)
+
+```
+
+Summary: На цей раз $d_{st}$ попадає в область прийняття гіпотези 0 H , а це означає, що у отриманої моделі автокореляція залишків першого порядку вже відсутня.

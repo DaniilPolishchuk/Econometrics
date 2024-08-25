@@ -1,0 +1,69 @@
+---
+title: "LAB_10"
+author: "Daniil Polishchuk"
+date: "2024-06-04"
+output: html_document
+---
+
+![](images/Screenshot 2024-05-31 110505.png)
+
+# Task 1
+```{r variables, comment=""}
+# X1 Кiлькiсть кiмнат
+
+# X2 Район мiста:
+# К—Київський, М—Малиновський, П—Приморський, С—Суворовський
+
+# X3 Загальна площа квартири
+# X4 Житлова площа квартири
+# X5 Площа кухнi
+# X6 Тип будинку: 0—цегляний, 1—iнший
+# X7 Наявнiсть балкону: 0—нi, 1—так
+# X8 Н—квартира у новобудовi, В—квартира вторинного ринку
+```
+
+```{r task 1, echo = F, comment=""}
+# specify i 
+i = 17
+j = i + 39
+
+
+# get data 
+data = read.csv("data_1.csv")
+
+# add new columns to data frame 
+data$Z1 <- ifelse(data$X2 == "С" | data$X2 == "К", 1,0 )
+data$Z2 <- ifelse(data$X8 == "Н", 1,0 )
+
+# get model 
+model <- lm(Y1 ~ X1 + X3 + X4 +X5 + X6 + X7  +Z1 + Z2, data = data[i:j,])
+model
+```
+Площа кухні виходить з відьемним знаком. Це відбувається через неоднорідність данних.
+
+# Task 2
+
+```{r task 2, echo = F, comment=""}
+model_new = model$coefficients
+model_new[1] = model_new[1] + model_new[9]
+model_old = model$coefficients
+model_old[9] = 0
+cbind("model_new" = model_new[1:8], "model_old" = model_old[1:8])
+# new_building <- subset(data[i:j,], X8 == "Н")
+# old_building <- subset(data[i:j,], X8 == "В")
+# 
+# lm(Y1 ~ X1 + X3 + X4 + X5 + X6 + X7 + Z1, data = new_building)
+# lm(Y1 ~ X1 + X3 + X4 + X5 + X6 + X7 + Z1, data = old_building)
+```
+The problem with the size of subset. However,
+let's test subset 
+
+```{r test_sub, echo = F, comment=""}
+new_building <- subset(data[i:j,], X8 == "Н")
+old_building <- subset(data[i:j,], X8 == "В")
+
+m1 <- lm(Y1 ~ X1 + X3 + X4 + X5 + X6 + X7 + Z1, data = new_building)
+m2 <- lm(Y1 ~ X1 + X3 + X4 + X5 + X6 + X7 + Z1, data = old_building)
+
+cbind("model_new" = m1$coefficients, "model_old" = m2$coefficients)
+```

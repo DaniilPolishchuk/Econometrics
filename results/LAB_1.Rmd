@@ -1,0 +1,163 @@
+---
+title: "LAB_1"
+author: "Daniil Polishchuk"
+date: "2024-04-23"
+output:
+  html_document: default
+  pdf_document:
+    keep_tex: yes
+    latex_engine: xelatex
+fontsize: 11pt
+---
+
+### TASK 1 -- paired coefficient of correlation 
+```{r def, comment=""}
+# париний коефіцієнт кориляції -- показує ступінь та напрямок звязку між лінійними змінними
+# -- приймає значення -1 до 1 
+# -- >1 пряма залежність між 
+# -- <1 обернена залежність 
+# -- =1 міждвома змінними існує фунціональна лінійна залежність 
+# -- =0 статестично не залежні 
+
+
+# Часткові коефіцієнти кореляції характеризують ступінь тісноти зв’язку між
+# двома ознаками при умові, що всі інші фіксовані на певному рівні, тобто
+# оцінюється зв’язок між ознаками в «чистому» вигляді.
+```
+
+```{r task, comment=""}
+#Task 1 
+
+# За початковими даними розрахувати парнi коефiцiєнти кореляцiї 
+# мiж залежною (результативною) ознакою Y 
+# i незалежними (факторними) ознаками X1–X5. 
+# Перевiрити значущiсть отриманих коефiцiєнтiв. 
+# Надати економiчного тлумачення результатам.
+
+# y_3 
+# x_2 x_3 x_7 x_12 x_14
+
+#y - Рентабельнiсть (dependent)
+#x_2 - Питома вага робiтникiв у складi промислово-виробничого персоналу
+#X_3 - Питома вага покупних виробiв
+#x_7 - Фондовiддача
+#x_12 - Оборотнiсть нормованих оборотних коштiв
+#x_13 - Невиробничi витрати
+#X- independent 
+```
+
+
+```{r getting data, echo = F, results='hide'}
+#getting data
+data = read.csv("D://Econometrics/data.csv")
+data
+
+Y_3 <- data$Y3
+X_2 <- data$X2
+X_3 <- data$X3
+X_7 <- data$X7
+X_12 <- data$X12
+X_13 <- data$X13
+
+X <- data[, c(1,2+3,3+3,3+7,3+ 12, 3+13)]
+
+```
+
+First of all let's find paired correlation coefficient.
+
+```{r paired_coef, echo = F, comment=""}
+rbind(
+"X_2" = cor(x = X_2, y = Y_3),
+"X_3" = cor(x = X_3, y = Y_3),
+"X_7" = cor(x = X_7, y = Y_3),
+"X_12" =cor(x = X_12, y = Y_3),
+"X_13" = cor(x = X_13, y = Y_3))
+
+```
+
+We most correlation we see on the X_7
+
+Now I will find the significance of the study coefficients 
+
+```{r sumup_sign_corr, echo=FALSE, comment=""}
+rbind(
+  "X_2" = cor.test(x = X_2, y = Y_3)$p.value,
+  "X_3" = cor.test(x = X_3, y = Y_3)$p.value,
+  "X_7" = cor.test(x = X_7, y = Y_3)$p.value,
+  "X_12"= cor.test(x = X_12, y = Y_3)$p.value,
+  "X_13"= cor.test(x = X_13, y = Y_3)$p.value
+)
+```
+
+```{r significance, echo = F, comment= ""}
+cor.test(x = X_2, y = Y_3)
+```
+
+```{r, echo = F, comment= ""}
+cor.test(x = X_3, y = Y_3)
+```
+
+```{r, echo = F, comment= ""}
+cor.test(x = X_7, y = Y_3)
+```
+
+```{r, echo = F, comment= ""}
+cor.test(x = X_12, y = Y_3)
+```
+
+```{r, echo = F, comment= ""}
+cor.test(x = X_13, y = Y_3)
+```
+
+### TASK2 --  Partion corelation coefficients 
+
+```{r partion coefficents, echo=F, comment=""}
+# find corelation matrix 
+x <- data[c("Y3","X2", "X3", "X7", "X12", "X13")]
+R <- cor(x)
+cbind.data.frame("R" = R)
+#find inverse matrix
+Z <- solve(R)
+cbind.data.frame("Z" = Z)
+
+names <- c("Y3","X2", "X3", "X7", "X12", "X13")
+```
+<span style="color: red;">Coefficient of correlation and partial coefficient of correlation</span>
+```{r, echo = F,comment=""}
+print("париний коефіцієнт кориляції")
+print("Часткові коефіцієнти кореляції")
+for(j in 2:6){
+  q <- -Z[1,j]/sqrt(Z[1,1] * Z[j,j])
+  cat( names[j], " ",cor(y = Y_3, x = X[j]), " ", q, "\n")
+}
+```
+data range:
+the most correlated characteristic remained the same, the other ones changed their positions. 
+
+Now lets test the significant level
+
+```{r sign.level.pair.cor, echo = F, comment =""}
+k = 4
+alpha = 0.05
+t_test <- qt(0.05, nrow(data) - k - 2 , lower.tail = F)
+results <- c(1,1.449657,3.432729,4.893193,0.5512443,2.430535)
+for(j in 2:6){
+ r_hat <- -R[1,j]/sqrt(Z[1,1] * Z[j,j])
+  t_obs <- abs(r_hat) * sqrt((nrow(data) - k - 2)/(1 -r_hat^2))
+  #print(t_obs)
+  #d <- X[j]
+  
+  d <- as.numeric(as.character(unlist(X[j])))
+  cat("sign.lev:",
+      cor.test(x = d, y = Y_3)$p.value,
+      cor.test(x = d, y = Y_3)$p.value < 0.2,
+      names[j],
+      results[j],
+      t_test,
+      results[j] > t_test,
+      "\t",
+      
+      '\n')
+}
+```
+
